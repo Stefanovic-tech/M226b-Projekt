@@ -83,7 +83,7 @@ class ZeiterfassungsApp : Application() {
             showLogoutDialog(primaryStage)
         }
         if (currentUser.role == Role.BOSS && databaseManager.haspendingAbsences()) {
-            pendingabsenceButton.style = "-fx-text-fill: red;" // Setzen Sie die Textfarbe auf rot
+            pendingabsenceButton.style = "-fx-background-color: red;" // Setzen Sie die Textfarbe auf rot
         }
     }
 
