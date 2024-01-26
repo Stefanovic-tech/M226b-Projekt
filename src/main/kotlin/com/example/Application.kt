@@ -82,7 +82,12 @@ class ZeiterfassungsApp : Application() {
         logoutButton.setOnAction {
             showLogoutDialog(primaryStage)
         }
+        if (currentUser.role == Role.BOSS && databaseManager.haspendingAbsences()) {
+            pendingabsenceButton.style = "-fx-text-fill: red;" // Setzen Sie die Textfarbe auf rot
+        }
     }
+
+
 
     private fun authenticateUser(username: String, password: String): Boolean {
         val user = databaseManager.getUser(username)
@@ -158,30 +163,45 @@ class ZeiterfassungsApp : Application() {
     fun showPendingAbsences() {
         val pendingAbsences = databaseManager.getPendingAbsences()
         val user = currentUser ?: return
-        val userAbsence = absence.user
 
         if (pendingAbsences.isNotEmpty()) {
             val dialog = Dialog<String>()
             dialog.title = "Ausstehende Absenzen"
             dialog.dialogPane.buttonTypes.addAll(ButtonType.CLOSE)
-
             val content = VBox()
 
             for (absence in pendingAbsences) {
-                val absenceText = "${userAbsence.username}: Absenz von ${absence.startDate} bis ${absence.endDate} - Grund: ${absence.reason}"
-                val label = Label(absenceText)
+                val label = Label(databaseManager.buildAbsenceMessage(listOf(absence)))
 
                 val buttonPane = HBox()
 
                 if (user.role == Role.BOSS) {
                     val approveButton = Button("Genehmigen")
                     approveButton.setOnAction {
-
+                        val selectedIndex = pendingAbsences.indexOf(absence)
+                        if (selectedIndex != -1) {
+                            val selectedAbsence = pendingAbsences[selectedIndex]
+                            if (databaseManager.approveAbsence(selectedAbsence)) {
+                                content.children.remove(label)
+                                dialog.dialogPane.content = content
+                            } else {
+                                showAlert("Fehler", "Genehmigung fehlgeschlagen.")
+                            }
+                        }
                     }
 
                     val rejectButton = Button("Ablehnen")
                     rejectButton.setOnAction {
-
+                        val selectedIndex = pendingAbsences.indexOf(absence)
+                        if (selectedIndex != -1) {
+                            val selectedAbsence = pendingAbsences[selectedIndex]
+                            if (databaseManager.rejectAbsence(selectedAbsence)) {
+                                content.children.remove(label)
+                                dialog.dialogPane.content = content // Aktualisiere die Dialog-Ansicht
+                            } else {
+                                showAlert("Fehler", "Ablehnung fehlgeschlagen.")
+                            }
+                        }
                     }
 
                     buttonPane.children.addAll(approveButton, rejectButton)
@@ -191,15 +211,13 @@ class ZeiterfassungsApp : Application() {
                 content.children.add(buttonPane)
             }
 
-
             dialog.dialogPane.content = content
 
             dialog.showAndWait()
         } else {
-            showAlert("Ausstehende Absenzen", "Keine ausstehenden Absenzen.")
+            showAlert("Ausstehende Absenzen", "Keine ausstehenden Absenzen vorhanden.")
         }
     }
-
 
 
 

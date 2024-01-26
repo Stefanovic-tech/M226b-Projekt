@@ -200,7 +200,7 @@ class DatabaseManager(private val databaseUrl: String) {
                     preparedStatement.setDate(2, java.sql.Date.valueOf(startDate))
                     preparedStatement.setDate(3, java.sql.Date.valueOf(endDate))
                     preparedStatement.setString(4, reason.name)
-                    preparedStatement.setString(5, AbsenceStatus.PENDING.name)
+                    preparedStatement.setString(5, AbsenceStatus.Unbearbeitet.name)
 
                     // Führe das Update aus und setze den Erfolg
                     success = preparedStatement.executeUpdate() > 0
@@ -233,15 +233,12 @@ class DatabaseManager(private val databaseUrl: String) {
 
 
     fun getPendingAbsences(): List<Absence> {
-        val sqlabsence = "SELECT * FROM Absences WHERE status = ?"
+        val sqlabsence = "SELECT * FROM Absences"
 
         return try {
             val connection = getConnection() ?: throw IllegalStateException("Database connection is null")
 
-            connection.use { connection ->
-                connection.prepareStatement(sqlabsence).use { preparedStatement ->
-                    preparedStatement.setString(1, AbsenceStatus.PENDING.name)
-
+                    val preparedStatement = connection.prepareStatement(sqlabsence)
                     val resultSet = preparedStatement.executeQuery()
 
                     val absenceList = mutableListOf<Absence>()
@@ -259,25 +256,44 @@ class DatabaseManager(private val databaseUrl: String) {
                         absenceList.add(absence)
                     }
                     absenceList.toList() // Konvertiere die MutableList in eine unveränderliche List
-                }
-            }
+
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
         }
     }
 
+    fun haspendingAbsences(): Boolean {
+        val sql = "SELECT COUNT(*) FROM Absences WHERE status = ?"
 
+        return try {
+            getConnection()?.use { connection ->
+                connection.prepareStatement(sql).use { preparedStatement ->
+                    preparedStatement.setString(1, AbsenceStatus.Unbearbeitet.name)
 
+                    val resultSet = preparedStatement.executeQuery()
+
+                    if (resultSet.next()) {
+                        resultSet.getInt(1) > 0
+                    } else {
+                        false
+                    }
+                }
+            } ?: false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 
 
 
     fun approveAbsence(absence: Absence): Boolean {
-        return updateAbsenceStatus(absence.id, AbsenceStatus.APPROVED)
+        return updateAbsenceStatus(absence.id, AbsenceStatus.Genehmigt)
     }
 
     fun rejectAbsence(absence: Absence): Boolean {
-        return updateAbsenceStatus(absence.id, AbsenceStatus.REJECTED)
+        return updateAbsenceStatus(absence.id, AbsenceStatus.Abgelehnt)
     }
 
     private fun updateAbsenceStatus(absenceId: Int, status: AbsenceStatus): Boolean {

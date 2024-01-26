@@ -8,17 +8,17 @@ data class Absence(
     val startDate: LocalDate,
     val endDate: LocalDate,
     val reason: AbsenceReason,
-    var status: AbsenceStatus = AbsenceStatus.PENDING
+    var status: AbsenceStatus = AbsenceStatus.Unbearbeitet
 )
 
 enum class AbsenceStatus {
-    PENDING,
-    APPROVED,
-    REJECTED
+    Unbearbeitet,
+    Genehmigt,
+    Abgelehnt
 }
 
 enum class AbsenceReason {
-    VACATION,
-    SICKNESS,
-    TRAINING,
+    Ferien,
+    Krankheit,
+    Weiterbildung,
 }
